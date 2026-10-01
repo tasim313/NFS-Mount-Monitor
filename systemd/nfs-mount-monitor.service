@@ -1,0 +1,50 @@
+[Unit]
+Description=NFS Mount Monitor and Recovery Watchdog
+Documentation=man:fstab(5) man:systemd.mount(5) man:nfs(5)
+Wants=network-online.target
+After=network-online.target nfs-client.target
+ConditionPathExists=/etc/fstab
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/nfs-mount-monitor/nfs_mount_monitor.py
+WorkingDirectory=/opt/nfs-mount-monitor
+
+# Mount operations require root/CAP_SYS_ADMIN. Do not grant this service
+# any additional capabilities beyond the normal root service context.
+User=root
+Group=root
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=10
+
+# Keep the service from accidentally inheriting an interactive environment.
+Environment=PYTHONUNBUFFERED=1
+
+# Generic watchdog settings only. NFS servers, export paths, mount points,
+# filesystem types, and mount options come from /etc/fstab.
+#Environment=NFS_MONITOR_CHECK_INTERVAL=30
+#Environment=NFS_MONITOR_MOUNT_TIMEOUT=30
+#Environment=NFS_MONITOR_RETRY_INITIAL_DELAY=30
+#Environment=NFS_MONITOR_RETRY_MAX_DELAY=300
+#Environment=NFS_MONITOR_LOG_LEVEL=INFO
+
+# Safe service-level restrictions that do not interfere with filesystem
+# mount operations or access to the configured mount points.
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+
+# The service must be able to read /etc/fstab and execute mount/findmnt.
+# Do not use ProtectSystem=strict, PrivateMounts, or namespace restrictions
+# here because they can interfere with the intended host-wide mount operation.
+
+[Install]
+WantedBy=multi-user.target

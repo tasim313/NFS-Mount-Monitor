@@ -1,0 +1,2 @@
+# No third-party Python packages are required.
+# The monitor uses only the Python 3 standard library.
